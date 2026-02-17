@@ -480,6 +480,7 @@
         // --- PROMPT 1: MarketPulse Dashboard - UI Implementation ---
 
         const { useState, useEffect, useMemo } = React;
+        console.log("MARKETPULSE: Initializing React Application...");
 
         // --- Mock Data Generators ---
 
@@ -533,12 +534,20 @@
         // --- Components ---
 
         const FormatNumber = ({ value, style = 'decimal', currency }) => {
-            return new Intl.NumberFormat('en-US', {
-                style,
-                currency,
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(value);
+            try {
+                const options = {
+                    style,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                };
+                if (style === 'currency') {
+                    options.currency = currency || 'USD';
+                }
+                return new Intl.NumberFormat('en-US', options).format(value);
+            } catch (e) {
+                console.error("FormatNumber Error:", e, { value, style, currency });
+                return value;
+            }
         };
 
         const PercentChange = ({ value }) => {

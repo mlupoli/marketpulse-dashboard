@@ -31,6 +31,10 @@ app.get('/', (req, res) => {
 app.get('/marketpulse_ui', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
+// Explicit route for /dashboard.html (legacy support)
+app.get('/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
 // Initialize Orchestrator
 const orchestrator = new MarketPulseOrchestrator();
