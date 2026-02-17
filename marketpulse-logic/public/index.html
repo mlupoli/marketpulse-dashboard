@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketPulse Dashboard</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts: Courier Prime for that Brutalist code look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Brutalist Palette */
+            --bg-dark: #0a0a0a;
+            --bg-panel: #141414;
+            --border-color: #2a2a2a;
+            --text-main: #e0e0e0;
+            --text-dim: #707070;
+
+            /* Accents */
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --neon-blue: #00aaff;
+            --neon-yellow: #ffcc00;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Courier Prime', monospace;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* --- Sidebar Layout --- */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--bg-dark);
+        }
+
+        .header-area {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #0c0c0c;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 200;
+        }
+
+        .sidebar-header {
+            padding: var(--space-md);
+            border-bottom: 1px solid var(--border-color);
+            background: #000;
+        }
+
+        .logo-glitch {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-main);
+            letter-spacing: -1px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: var(--space-md) 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 12px var(--space-md);
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            border-left: 2px solid transparent;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.05);
+            border-left-color: var(--neon-green);
+        }
+
+        .sidebar-footer {
+            padding: var(--space-md);
+            border-top: 1px solid var(--border-color);
+            background: #000;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.online {
+            background: var(--neon-green);
+            box-shadow: 0 0 5px var(--neon-green);
+        }
+
+        .status-dot.offline {
+            background: var(--neon-red);
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            /* Sidebar width */
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-dark);
+        }
+
+        /* --- Dashboard Grid --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 320px;
+            grid-template-rows: auto 1fr;
+            /* Header is separate now */
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            margin: var(--space-md);
+        }
+
+        /* Areas */
+        /* Header is now outside grid in main-content */
+
+        .stocks-area {
+            grid-column: 1;
+            grid-row: 1;
+            background: var(--bg-dark);
+        }
+
+        .crypto-area {
+            grid-column: 2;
+            grid-row: 1;
+            background: var(--bg-dark);
+        }
+
+        .alerts-area {
+            grid-column: 3;
+            grid-row: 1 / 3;
+            background: var(--bg-panel);
+        }
+
+        .news-area {
+            grid-column: 1 / 3;
+            grid-row: 2;
+            background: var(--bg-dark);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 300px;
+                grid-template-rows: auto auto 1fr;
+            }
+
+            .stocks-area {
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            .crypto-area {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .alerts-area {
+                grid-column: 2;
+                grid-row: 1 / 4;
+            }
+
+            .news-area {
+                grid-column: 1;
+                grid-row: 3;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 var(--space-md);
+            }
+
+            .sidebar-header {
+                border: none;
+                background: transparent;
+                padding: 10px 0;
+            }
+
+            .nav-menu {
+                display: flex;
+                padding: 0;
+            }
+
+            .nav-item {
+                padding: 10px;
+                border-left: none;
+                border-bottom: 2px solid transparent;
+            }
+
+            .nav-item:hover,
+            .nav-item.active {
+                border-left-color: transparent;
+                border-bottom-color: var(--neon-green);
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                margin: var(--space-sm);
+            }
+
+            .stocks-area,
+            .crypto-area,
+            .alerts-area,
+            .news-area {
+                grid-column: 1;
+                grid-row: auto;
+            }
+        }
+
+        /* --- Components --- */
+
+        /* Typography Helpers */
+        .text-neon-green {
+            color: var(--neon-green);
+        }
+
+        .text-neon-red {
+            color: var(--neon-red);
+        }
+
+        .text-neon-blue {
+            color: var(--neon-blue);
+        }
+
+        .text-small {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .text-bold {
+            font-weight: 700;
+        }
+
+        /* Panel Header */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Button */
+        button {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 4px 12px;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: var(--text-dim);
+            color: var(--text-dim);
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: right;
+            padding: var(--space-sm);
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .data-table th:first-child {
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: var(--space-sm);
+            border-bottom: 1px solid #1a1a1a;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .data-table tr:hover td {
+            background: #1a1a1a;
+            border-left: 2px solid var(--neon-green);
+        }
+
+        /* Cards (News/Alerts) */
+        .card {
+            background: #111;
+            border: 1px solid var(--border-color);
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
+            transition: transform 0.1s, border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            border-color: var(--text-dim);
+            transform: translateX(2px);
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border: 1px solid var(--text-dim);
+            color: var(--text-dim);
+            margin-right: 4px;
+            margin-top: 4px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            border: 1px solid var(--neon-green);
+            width: 90%;
+            max-width: 600px;
+            padding: var(--space-lg);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.1);
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-md);
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.5rem;
+        }
+
+        .close-btn:hover {
+            background: none;
+            color: white;
+            box-shadow: none;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Severity Borders */
+        .border-left-high {
+            border-left: 4px solid var(--neon-red);
+        }
+
+        .border-left-medium {
+            border-left: 4px solid var(--neon-yellow);
+        }
+
+        .border-left-low {
+            border-left: 4px solid var(--neon-blue);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- PROMPT 1: MarketPulse Dashboard - UI Implementation ---
+
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Mock Data Generators ---
+
+        const generateStocks = () => [
+            { id: '1', type: 'index', symbol: '^NDX', name: 'NASDAQ 100', price: 17890.45, change24hPct: 1.23, currency: 'USD' },
+            { id: '2', type: 'index', symbol: '^GSPC', name: 'S&P 500', price: 5080.20, change24hPct: 0.85, currency: 'USD' },
+            { id: '3', type: 'equity', symbol: 'NVDA', name: 'NVIDIA Corp', price: 785.30, change24hPct: 3.45, currency: 'USD' },
+            { id: '4', type: 'equity', symbol: 'AAPL', name: 'Apple Inc.', price: 182.50, change24hPct: -0.45, currency: 'USD' },
+            { id: '5', type: 'equity', symbol: 'TSLA', name: 'Tesla Inc', price: 199.10, change24hPct: -1.20, currency: 'USD' },
+            { id: '6', type: 'equity', symbol: 'MSFT', name: 'Microsoft', price: 410.25, change24hPct: 0.50, currency: 'USD' },
+            { id: '7', type: 'equity', symbol: 'RACE', name: 'Ferrari NV', price: 385.10, change24hPct: 2.10, currency: 'EUR' },
+            { id: '8', type: 'equity', symbol: 'ENI', name: 'Eni S.p.A.', price: 14.85, change24hPct: 0.15, currency: 'EUR' }
+        ];
+
+        const generateEtfs = () => [
+            { id: 'etf1', type: 'etf', symbol: 'EUE', name: 'iShares Core MSCI Europe', price: 78.45, change24hPct: 0.85, currency: 'EUR' },
+            { id: 'etf2', type: 'etf', symbol: 'DAX', name: 'Xtrackers DAX', price: 145.20, change24hPct: 1.10, currency: 'EUR' },
+            { id: 'etf3', type: 'etf', symbol: 'MIB', name: 'Lyxor FTSE MIB', price: 28.90, change24hPct: -0.45, currency: 'EUR' },
+            { id: 'etf4', type: 'etf', symbol: 'VUSA', name: 'Vanguard S&P 500', price: 89.10, change24hPct: 0.50, currency: 'EUR' },
+            { id: 'etf5', type: 'etf', symbol: 'IQQH', name: 'iShares Global Clean Energy', price: 9.35, change24hPct: -1.20, currency: 'EUR' }
+        ];
+
+        const generateCrypto = () => [
+            { id: 'c1', rank: 1, symbol: 'BTC', name: 'Bitcoin', price: 58900, change24hPct: 4.2 },
+            { id: 'c2', rank: 2, symbol: 'ETH', name: 'Ethereum', price: 3250, change24hPct: 2.1 },
+            { id: 'c3', rank: 3, symbol: 'SOL', name: 'Solana', price: 145.20, change24hPct: 8.5 },
+            { id: 'c4', rank: 4, symbol: 'BNB', name: 'Binance Coin', price: 410, change24hPct: -0.5 },
+            { id: 'c5', rank: 5, symbol: 'XRP', name: 'Ripple', price: 0.65, change24hPct: 1.1 },
+            { id: 'c6', rank: 6, symbol: 'ADA', name: 'Cardano', price: 0.62, change24hPct: -1.2 },
+            { id: 'c7', rank: 7, symbol: 'AVAX', name: 'Avalanche', price: 42.50, change24hPct: 5.4 },
+            { id: 'c8', rank: 8, symbol: 'DOGE', name: 'Dogecoin', price: 0.12, change24hPct: 12.5 },
+            { id: 'c9', rank: 9, symbol: 'DOT', name: 'Polkadot', price: 8.45, change24hPct: 0.5 },
+            { id: 'c10', rank: 10, symbol: 'LINK', name: 'Chainlink', price: 19.20, change24hPct: -2.1 }
+        ];
+
+        const generateNews = () => [
+            { id: 'n1', title: 'BCE: tassi invariati, falchi ancora cauti su tagli', source: 'Il Sole 24 Ore', publishedAt: new Date().toISOString(), tags: ['BCE', 'Inflazione', 'Macro'], snippet: 'La Banca Centrale Europea mantiene i tassi fermi per la terza volta consecutiva. Lagarde avverte: "Disinflazione in corso ma rischi geopolitici persistono."' },
+            { id: 'n2', title: 'NVIDIA rompe i massimi storici su boom AI', source: 'Reuters Italia', publishedAt: new Date(Date.now() - 3600000).toISOString(), tags: ['Tech', 'AI', 'Earnings'], snippet: 'Utili trimestrali sopra le attese spingono il titolo verso nuovi record. La domanda di chip per l\'intelligenza artificiale non sembra rallentare.' },
+            { id: 'n3', title: 'Bitcoin supera i 58k, ETF spot trainano i volumi', source: 'Milano Finanza', publishedAt: new Date(Date.now() - 7200000).toISOString(), tags: ['Crypto', 'Bitcoin', 'ETF'], snippet: 'Flussi record negli ETF spot americani. Gli investitori istituzionali tornano ad accumulare in vista dell\'halving previsto per aprile.' },
+            { id: 'n4', title: 'Ferrari: anno record, bonus ai dipendenti', source: 'ANSA', publishedAt: new Date(Date.now() - 10800000).toISOString(), tags: ['Auto', 'Lusso', 'Italia'], snippet: 'Risultati finanziari eccezionali per la casa di Maranello. Benedetto Vigna annuncia un bonus di competitività fino a 13.500 euro per i lavoratori.' },
+            { id: 'n5', title: 'Petrolio in rialzo su tensioni in Medio Oriente', source: 'Corriere Economia', publishedAt: new Date(Date.now() - 14400000).toISOString(), tags: ['Energy', 'Geopolitica'], snippet: 'Il WTI torna sopra i 78 dollari al barile mentre continuano gli attacchi nel Mar Rosso. Preoccupazione per le rotte commerciali globali.' }
+        ];
+
+        const generateAlerts = () => [
+            { id: 'a1', severity: 'high', title: 'BTC Breakout imminent', confidence: 0.85, thesis: 'Multiple technical indicators (RSI, MACD) aligned on daily timeframe. Volume spike observed on Coinbase.', assetRefs: ['BTC'], relatedNews: ['n3'] },
+            { id: 'a2', severity: 'medium', title: 'Tech Sector Overbought', confidence: 0.65, thesis: 'Nasdaq RSI > 75. Historical data suggests a 5% pullback is likely in the next 2 weeks.', assetRefs: ['^NDX', 'NVDA'], relatedNews: ['n2'] },
+            { id: 'a3', severity: 'low', title: 'Gold Accumulation', confidence: 0.45, thesis: 'Central banks increasing gold reserves. Long term bullish structure forming.', assetRefs: [], relatedNews: [] },
+            { id: 'a4', severity: 'high', title: 'Supply Chain Risk', confidence: 0.90, thesis: 'Red Sea disruptions causing shipping delays. Watch freight costs.', assetRefs: [], relatedNews: ['n5'] }
+        ];
+
+        // --- Components ---
+
+        const FormatNumber = ({ value, style = 'decimal', currency }) => {
+            return new Intl.NumberFormat('en-US', {
+                style,
+                currency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        };
+
+        const PercentChange = ({ value }) => {
+            const isPositive = value >= 0;
+            const colorClass = isPositive ? 'text-neon-green' : 'text-neon-red';
+            return (
+                <span className={`text-bold ${colorClass}`}>
+                    {isPositive ? '+' : ''}{value}%
+                </span>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="close-btn" onClick={onClose}>&times;</button>
+                        {children}
+                    </div>
+                </div>
+            );
+        };
+
+        const Header = ({ lastUpdated, isRefreshing, onRefresh }) => (
+            <div className="header-area panel-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <span className="text-neon-green text-bold" style={{ fontSize: '1.5rem', letterSpacing: '2px' }}>MARKETPULSE</span>
+                    <span className="text-small" style={{ marginLeft: '12px' }}>V.1.0-BRUTAL</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div className="text-small">
+                        LAST UPDATED: <span className="text-main">{lastUpdated.toLocaleTimeString()}</span>
+                    </div>
+                    <button onClick={onRefresh} disabled={isRefreshing}>
+                        {isRefreshing ? 'REFRESHING...' : 'REFRESH DATA'}
+                    </button>
+                </div>
+            </div>
+        );
+
+        const StocksPanel = ({ data, onSelect }) => (
+            <div className="stocks-area panel-container">
+                <div className="panel-header">
+                    <span className="panel-title">STOCKS / INDICES</span>
+                    <span className="text-small">{data.length} ASSETS</span>
+                </div>
+                {data.length === 0 ? <p>NO DATA</p> : (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>SYMBOL</th>
+                                <th>PRICE</th>
+                                <th>CHG%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map(item => (
+                                <tr key={item.id} onClick={() => onSelect(item, 'asset')}>
+                                    <td>
+                                        <div className="text-bold">{item.symbol}</div>
+                                        <div className="text-small">{item.name}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <FormatNumber value={item.price} currency={item.currency} style="currency" />
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}><PercentChange value={item.change24hPct} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        );
+
+        const EtfPanel = ({ data, onSelect }) => (
+            <div className="etf-area panel-container">
+                <div className="panel-header">
+                    <span className="panel-title">EUROPEAN ETFs</span>
+                    <span className="text-small">{data.length} FUNDS</span>
+                </div>
+                {data.length === 0 ? <p>NO DATA</p> : (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>SYMBOL</th>
+                                <th>NAV</th>
+                                <th>CHG%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map(item => (
+                                <tr key={item.id} onClick={() => onSelect(item, 'asset')}>
+                                    <td>
+                                        <div className="text-bold">{item.symbol}</div>
+                                        <div className="text-small">{item.name}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <FormatNumber value={item.price} currency={item.currency || 'EUR'} style="currency" />
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}><PercentChange value={item.change24hPct} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        );
+
+        const CryptoPanel = ({ data, onSelect }) => (
+            <div className="crypto-area panel-container">
+                <div className="panel-header">
+                    <span className="panel-title text-neon-yellow">CRYPTO TOP 10</span>
+                </div>
+                {data.length === 0 ? <p>NO DATA</p> : (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '30px' }}>#</th>
+                                <th>ASSET</th>
+                                <th>PRICE</th>
+                                <th>24H</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map(item => (
+                                <tr key={item.id} onClick={() => onSelect(item, 'asset')}>
+                                    <td><span className={item.rank === 1 ? 'text-neon-yellow text-bold' : 'text-dim'}>{item.rank}</span></td>
+                                    <td>
+                                        <div className="text-bold">{item.symbol}</div>
+                                        <div className="text-small">{item.name}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <FormatNumber value={item.price} currency={item.currency || 'EUR'} style="currency" />
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}><PercentChange value={item.change24hPct} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        );
+
+        const AlertsPanel = ({ data, onSelect }) => (
+            <div className="alerts-area panel-container">
+                <div className="panel-header">
+                    <span className="panel-title text-neon-red">ALERTS</span>
+                    <span className="text-small" style={{ background: 'var(--neon-red)', color: 'black', padding: '0 4px' }}>{data.length}</span>
+                </div>
+                <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 120px)' }}>
+                    {data.map(alert => (
+                        <div
+                            key={alert.id}
+                            className={`card border-left-${alert.severity}`}
+                            onClick={() => onSelect(alert, 'alert')}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span className={`text-small text-neon-${alert.severity === 'high' ? 'red' : alert.severity === 'medium' ? 'yellow' : 'blue'}`}>
+                                    {alert.severity.toUpperCase()}
+                                </span>
+                                <span className="text-small">CONF: {Math.round(alert.confidence * 100)}%</span>
+                            </div>
+                            <div className="text-bold" style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>{alert.title}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const NewsPanel = ({ data, onSelect }) => (
+            <div className="news-area panel-container">
+                <div className="panel-header">
+                    <span className="panel-title text-neon-blue">LATEST INTELLIGENCE</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                    {data.map(news => (
+                        <div key={news.id} className="card" onClick={() => onSelect(news, 'news')}>
+                            <div className="text-small text-neon-blue" style={{ marginBottom: '4px' }}>{news.source} • {new Date(news.publishedAt).toLocaleTimeString()}</div>
+                            <h4 style={{ marginBottom: '8px', fontSize: '1rem' }}>{news.title}</h4>
+                            <p className="text-dim" style={{ fontSize: '0.8rem', lineHeight: '1.4', marginBottom: '8px' }}>{news.snippet}</p>
+                            <div>
+                                {news.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        // --- Modals Content ---
+
+
+        const AlertDetails = ({ item }) => (
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <span className={`text-small text-neon-${item.severity === 'high' ? 'red' : item.severity === 'medium' ? 'yellow' : 'blue'}`} style={{ border: '1px solid currentColor', padding: '4px 8px' }}>
+                        SEVERITY: {item.severity.toUpperCase()}
+                    </span>
+                    <span className="text-small">CONFIDENCE: {Math.round(item.confidence * 100)}%</span>
+                </div>
+
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '24px', lineHeight: '1.3' }}>{item.title}</h2>
+
+                <div style={{ background: '#111', padding: '16px', borderLeft: '2px solid var(--text-dim)', marginBottom: '24px' }}>
+                    <h4 className="text-small" style={{ marginBottom: '8px' }}>THESIS</h4>
+                    <p style={{ lineHeight: '1.6' }}>{item.thesis}</p>
+                </div>
+
+                {item.assetRefs && item.assetRefs.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <h4 className="text-small" style={{ marginBottom: '8px' }}>RELATED ASSETS</h4>
+                        <div>{item.assetRefs.map(a => <span key={a} className="tag" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>{a}</span>)}</div>
+                    </div>
+                )}
+            </div>
+        );
+
+        const NewsDetails = ({ item }) => (
+            <div>
+                <div className="text-small text-neon-blue" style={{ marginBottom: '16px' }}>
+                    {item.source.toUpperCase()} • {new Date(item.publishedAt).toLocaleString()}
+                </div>
+
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '24px', lineHeight: '1.3' }}>{item.title}</h2>
+
+                <p style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '24px' }}>
+                    {item.snippet}
+                    <br /><br />
+                    (Full content would be fetched from API in production...)
+                </p>
+
+                <div style={{ marginBottom: '24px' }}>
+                    {item.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
+                </div>
+
+                <button style={{ width: '100%', textAlign: 'center' }}>OPEN ORIGINAL SOURCE</button>
+            </div>
+        );
+
+        // --- API Integration ---
+
+        // Antigravity Agent API Endpoint
+        const API_URL = '/api/agents/OrchestratorAgent/query';
+
+        // --- Main App ---
+
+        // --- Augmented Components ---
+
+        const Sidebar = ({ activeView, onViewChange, backendStatus, onAddClick }) => (
+            <div className="sidebar">
+                <div className="sidebar-header">
+                    <div className="logo-glitch" data-text="ANTIGRAVITY">ANTIGRAVITY</div>
+                    <div className="text-small" style={{ letterSpacing: '2px', color: 'var(--neon-green)', marginTop: '4px' }}>MARKETPULSE</div>
+                </div>
+
+                <div className="nav-menu">
+                    {[
+                        { id: 'dashboard', label: 'DASHBOARD', icon: '⊞' },
+                        { id: 'stocks', label: 'STOCKS', icon: '↗' },
+                        { id: 'etfs', label: 'ETFs (EU)', icon: '◈' },
+                        { id: 'crypto', label: 'CRYPTO', icon: '₿' },
+                        { id: 'news', label: 'INTEL', icon: '≡' },
+                        { id: 'alerts', label: 'ALERTS', icon: '!' }
+                    ].map(item => (
+                        <div
+                            key={item.id}
+                            className={`nav-item ${activeView === item.id ? 'active' : ''}`}
+                            onClick={() => onViewChange(item.id)}
+                        >
+                            <span style={{ width: '24px', display: 'inline-block' }}>{item.icon}</span>
+                            {item.label}
+                        </div>
+                    ))}
+
+                    <div className="nav-item" onClick={onAddClick} style={{ marginTop: '12px', borderTop: '1px solid #333', color: 'var(--neon-blue)' }}>
+                        <span style={{ width: '24px', display: 'inline-block' }}>+</span>
+                        ADD ASSET
+                    </div>
+                </div>
+
+                <div className="sidebar-footer">
+                    <div className="status-indicator">
+                        <div className={`status-dot ${backendStatus.includes('ONLINE') ? 'online' : 'offline'}`}></div>
+                        <span className="text-small">{backendStatus}</span>
+                    </div>
+                    <div className="text-small text-dim" style={{ marginTop: '8px', fontSize: '0.6rem' }}>
+                        SYS.VER 2.5.0<br />
+                        LATENCY: 14ms
+                    </div>
+                </div>
+            </div>
+        );
+
+        const AssetDetails = ({ item, relatedNews = [] }) => {
+            // Mock extra data if missing
+            const marketCap = item.marketCap || (item.price * (Math.random() * 1000000 + 500000)).toFixed(0);
+            const volume = item.volume || (Math.random() * 1000000).toFixed(0);
+            const dayHigh = item.dayHigh || (item.price * 1.02).toFixed(2);
+            const dayLow = item.dayLow || (item.price * 0.98).toFixed(2);
+
+            return (
+                <div>
+                    <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div className="text-small text-dim">{item.type ? item.type.toUpperCase() : 'ASSET'} // {item.symbol}</div>
+                            <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{item.name}</h2>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                                <FormatNumber value={item.price} currency={item.currency || (item.type === 'crypto' ? 'EUR' : 'USD')} style="currency" />
+                            </div>
+                            <div style={{ fontSize: '1.2rem' }}>
+                                <PercentChange value={item.change24hPct} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                        <div className="card" style={{ cursor: 'default', margin: 0 }}>
+                            <div className="text-small text-dim">MARKET CAP</div>
+                            <div className="text-bold"><FormatNumber value={marketCap} currency={item.currency || (item.type === 'crypto' ? 'EUR' : 'USD')} style="decimal" /></div>
+                        </div>
+                        <div className="card" style={{ cursor: 'default', margin: 0 }}>
+                            <div className="text-small text-dim">VOLUME (24H)</div>
+                            <div className="text-bold"><FormatNumber value={volume} style="decimal" /></div>
+                        </div>
+                        <div className="card" style={{ cursor: 'default', margin: 0 }}>
+                            <div className="text-small text-dim">DAY RANGE</div>
+                            <div className="text-bold">{dayLow} - {dayHigh}</div>
+                        </div>
+                        <div className="card" style={{ cursor: 'default', margin: 0 }}>
+                            <div className="text-small text-dim">SENTIMENT</div>
+                            <div className="text-bold text-neon-blue">NEUTRAL</div>
+                        </div>
+                    </div>
+
+                    {relatedNews.length > 0 && (
+                        <div style={{ marginBottom: '24px' }}>
+                            <h4 className="text-small" style={{ marginBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>RELATED INTEL</h4>
+                            {relatedNews.map(news => (
+                                <div key={news.id} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px dashed #333' }}>
+                                    <div className="text-small text-dim">{new Date(news.publishedAt).toLocaleDateString()} • {news.source}</div>
+                                    <div style={{ fontWeight: 'bold' }}>{news.title}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button style={{ flex: 1 }}>TRADE</button>
+                        <button style={{ flex: 1, borderColor: 'var(--text-dim)', color: 'var(--text-dim)' }}>ADD TO WATCHLIST</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const AddAssetModal = ({ isOpen, onClose, onAdd }) => {
+            const [symbol, setSymbol] = useState('');
+            const [name, setName] = useState('');
+            const [type, setType] = useState('etf');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError(null);
+                try {
+                    await onAdd({ symbol: symbol.toUpperCase(), name, type });
+                    onClose();
+                    setSymbol('');
+                    setName('');
+                } catch (err) {
+                    setError('Failed to add asset: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                        <h2 style={{ marginBottom: '16px' }}>ADD NEW ASSET</h2>
+                        {error && <div className="text-neon-red" style={{ marginBottom: '12px' }}>{error}</div>}
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="text-small text-dim" style={{ display: 'block', marginBottom: '4px' }}>SYMBOL (e.g. AAPL, BTC, SWDA.MI)</label>
+                                <input
+                                    type="text"
+                                    value={symbol}
+                                    onChange={e => setSymbol(e.target.value)}
+                                    style={{ width: '100%', padding: '8px', background: '#222', border: '1px solid #444', color: 'white' }}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="text-small text-dim" style={{ display: 'block', marginBottom: '4px' }}>NAME</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    style={{ width: '100%', padding: '8px', background: '#222', border: '1px solid #444', color: 'white' }}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '24px' }}>
+                                <label className="text-small text-dim" style={{ display: 'block', marginBottom: '4px' }}>TYPE</label>
+                                <select
+                                    value={type}
+                                    onChange={e => setType(e.target.value)}
+                                    style={{ width: '100%', padding: '8px', background: '#222', border: '1px solid #444', color: 'white' }}
+                                >
+                                    <option value="equity">Stock / Equity</option>
+                                    <option value="etf">ETF</option>
+                                    <option value="crypto">Crypto</option>
+                                    <option value="index">Index</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button type="button" onClick={onClose} style={{ flex: 1, background: 'transparent', border: '1px solid #444' }}>CANCEL</button>
+                                <button type="submit" style={{ flex: 1 }} disabled={loading}>{loading ? 'ADDING...' : 'ADD ASSET'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const MarketPulseApp = () => {
+            const [data, setData] = useState({
+                stocks: [],
+                etfs: [],
+                crypto: [],
+                news: [],
+                alerts: []
+            });
+            const [loading, setLoading] = useState(true);
+            const [lastUpdated, setLastUpdated] = useState(new Date());
+            const [isRefreshing, setIsRefreshing] = useState(false);
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Add Modal State
+            const [backendStatus, setBackendStatus] = useState('OFFLINE');
+            const [activeView, setActiveView] = useState('dashboard');
+
+            const fetchData = async (isRefresh = false) => {
+                if (isRefresh) setIsRefreshing(true);
+
+                try {
+                    const message = isRefresh ? 'refresh all' : 'partially refresh logic';
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: 'refresh all' })
+                    });
+
+                    if (!response.ok) throw new Error('Backend connection failed');
+                    const result = await response.json();
+
+                    const allAssets = result.assets || [];
+                    const stocks = allAssets.filter(m => m.type === 'equity' || m.type === 'index');
+                    const etfs = allAssets.filter(m => m.type === 'etf');
+                    const crypto = allAssets.filter(m => m.type === 'crypto');
+
+                    // Fallback to mock only if completely empty
+                    const finalEtfs = etfs.length > 0 ? etfs : (data.etfs.length > 0 ? data.etfs : []);
+
+                    setData({
+                        stocks: stocks,
+                        etfs: finalEtfs,
+                        crypto: crypto,
+                        news: result.news || [],
+                        alerts: result.alerts || []
+                    });
+                    setBackendStatus('ONLINE');
+                    setLastUpdated(new Date(result.lastUpdated || Date.now()));
+
+                } catch (error) {
+                    console.warn('API Fetch Error:', error.message);
+                    setBackendStatus('OFFLINE (MOCK DATA)');
+                    if (data.stocks.length === 0) {
+                        setData({
+                            stocks: typeof generateStocks === 'function' ? generateStocks() : [],
+                            etfs: typeof generateEtfs === 'function' ? generateEtfs() : [],
+                            crypto: typeof generateCrypto === 'function' ? generateCrypto() : [],
+                            news: typeof generateNews === 'function' ? generateNews() : [],
+                            alerts: typeof generateAlerts === 'function' ? generateAlerts() : []
+                        });
+                        setLastUpdated(new Date());
+                    }
+                } finally {
+                    setLoading(false);
+                    setIsRefreshing(false);
+                }
+            };
+
+            const handleAddAsset = async (asset) => {
+                const response = await fetch('/api/assets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(asset)
+                });
+                if (!response.ok) throw new Error('Failed to add asset');
+                await fetchData(true); // Refresh data
+            };
+
+            useEffect(() => {
+                fetchData();
+                const interval = setInterval(() => fetchData(true), 60000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const handleRefresh = () => fetchData(true);
+            const handleSelect = (item, type) => setSelectedItem({ item, type });
+            const closeModal = () => setSelectedItem(null);
+
+            // Filter logic based on activeView
+            const showStocks = activeView === 'dashboard' || activeView === 'stocks';
+            const showEtfs = activeView === 'dashboard' || activeView === 'etfs';
+            const showCrypto = activeView === 'dashboard' || activeView === 'crypto';
+            const showAlerts = activeView === 'dashboard' || activeView === 'alerts';
+            const showNews = activeView === 'dashboard' || activeView === 'news';
+
+            if (loading && !data.stocks.length) {
+                return (
+                    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                        <div className="text-neon-green" style={{ fontSize: '2rem', marginBottom: '16px' }}>INITIALIZING STREAMS...</div>
+                        <div className="text-small" style={{ color: 'var(--text-dim)' }}>Connecting to financial oracle...</div>
+                    </div>
+                );
+            }
+
+            // Helper to find related news for an asset
+            const getRelatedNews = (item) => {
+                if (!item) return [];
+                const symbol = item.symbol.toLowerCase();
+                const name = item.name.toLowerCase();
+                return data.news.filter(n =>
+                    n.title.toLowerCase().includes(symbol) ||
+                    n.title.toLowerCase().includes(name) ||
+                    (n.tags && n.tags.some(t => t.toLowerCase() === symbol || t.toLowerCase() === name))
+                ).slice(0, 3);
+            };
+
+            return (
+                <div className="app-container">
+                    <Sidebar
+                        activeView={activeView}
+                        onViewChange={setActiveView}
+                        backendStatus={backendStatus}
+                        onAddClick={() => setIsAddModalOpen(true)} // Pass add handler
+                    />
+
+                    <div className="main-content">
+                        <Header lastUpdated={lastUpdated} isRefreshing={isRefreshing} onRefresh={handleRefresh} />
+
+                        <div className="dashboard-grid">
+                            {showStocks && <StocksPanel data={data.stocks} onSelect={handleSelect} />}
+                            {showEtfs && <EtfPanel data={data.etfs} onSelect={handleSelect} />}
+                            {showCrypto && <CryptoPanel data={data.crypto} onSelect={handleSelect} />}
+                            {showAlerts && <AlertsPanel data={data.alerts} onSelect={handleSelect} />}
+                            {showNews && <NewsPanel data={data.news} onSelect={handleSelect} />}
+                        </div>
+                    </div>
+
+                    <Modal isOpen={!!selectedItem} onClose={closeModal}>
+                        {selectedItem && (
+                            <React.Fragment>
+                                {selectedItem.type === 'asset' && (
+                                    <AssetDetails
+                                        item={selectedItem.item}
+                                        relatedNews={getRelatedNews(selectedItem.item)}
+                                    />
+                                )}
+                                {selectedItem.type === 'alert' && <AlertDetails item={selectedItem.item} />}
+                                {selectedItem.type === 'news' && <NewsDetails item={selectedItem.item} />}
+                            </React.Fragment>
+                        )}
+                    </Modal>
+
+                    <AddAssetModal
+                        isOpen={isAddModalOpen}
+                        onClose={() => setIsAddModalOpen(false)}
+                        onAdd={handleAddAsset}
+                    />
+                </div>
+            );
+        };
+
+        const rootContainer = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootContainer);
+        root.render(<MarketPulseApp />);
+    </script>
+</body>
+
+</html>
