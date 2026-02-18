@@ -34,6 +34,21 @@ class MarketAgent {
     }
 
     /**
+     * Remove an asset from tracking
+     * @param {string} symbol
+     */
+    removeAsset(symbol) {
+        const index = this.providers.stockSymbols.findIndex(s => s.symbol === symbol);
+        if (index !== -1) {
+            this.providers.stockSymbols.splice(index, 1);
+            this.cache.clear(); // Invalidate cache
+            console.log(`MarketAgent: Removed asset ${symbol}`);
+            return true;
+        }
+        return false;
+    }
+
+    /**
       * Fetch all market data
       * @returns {Promise<Object>} MarketsResponse { assets, asOf }
       */

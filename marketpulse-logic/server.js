@@ -103,6 +103,24 @@ app.post('/api/assets', async (req, res) => {
     }
 });
 
+// Delete Asset Endpoint
+app.delete('/api/assets/:symbol', async (req, res) => {
+    try {
+        const symbol = decodeURIComponent(req.params.symbol);
+        const removed = orchestrator.removeAsset(symbol);
+        if (removed) {
+            console.log(`API: Removed asset ${symbol}`);
+            const state = await orchestrator.refresh();
+            res.json(state);
+        } else {
+            res.status(404).json({ error: 'Asset not found' });
+        }
+    } catch (error) {
+        console.error('API Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
     console.log(`Open http://localhost:${PORT}/dashboard.html to view the dashboard.`);

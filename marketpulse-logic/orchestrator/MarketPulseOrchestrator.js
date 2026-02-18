@@ -124,6 +124,13 @@ class MarketPulseOrchestrator {
     addAsset(asset) {
         return this.marketAgent.addAsset(asset);
     }
+
+    /**
+     * Remove an asset from tracking
+     */
+    removeAsset(symbol) {
+        return this.marketAgent.removeAsset(symbol);
+    }
 }
 
 if (typeof module !== 'undefined' && module.exports) {
