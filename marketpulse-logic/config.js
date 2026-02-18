@@ -31,7 +31,7 @@ const CONFIG = {
 
         // User Requested ETFs
         { symbol: 'GOM.MI', name: 'Gold Bullion Securities', type: 'etf', currency: 'EUR', price: 50.67 },
-        { symbol: 'IB1T.DE', name: 'iShares $ Treasury Bond 1-3yr', type: 'etf', currency: 'EUR', price: 5.733 },
+        { symbol: 'IB1T.DE', name: 'iShares Bitcoin ETP', type: 'etf', currency: 'EUR', price: 5.733 },
         { symbol: 'JEDI.DE', name: 'JPMorgan ETFs (Ireland) ICAV', type: 'etf', currency: 'EUR', price: 66.26 },
         { symbol: 'SCWX.MI', name: 'iShares MSCI World Small Cap', type: 'etf', currency: 'EUR', price: 10.554 },
         { symbol: 'SILV.MI', name: 'WisdomTree Physical Silver', type: 'etf', currency: 'EUR', price: 39.965 },

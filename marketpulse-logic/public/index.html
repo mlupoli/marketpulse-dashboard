@@ -533,8 +533,23 @@
 
         // --- Components ---
 
-        const FormatNumber = ({ value, style = 'decimal', currency }) => {
+        const FormatNumber = ({ value, style = 'decimal', currency, assetCurrency }) => {
             try {
+                // Simple conversion rates (Mock/Hardcoded for this dashboard)
+                const rates = {
+                    'USD': 1,
+                    'EUR': 0.93,
+                    'GBP': 0.79,
+                    'CHF': 0.88
+                };
+
+                let convertedValue = value;
+                if (style === 'currency' && assetCurrency && currency && assetCurrency !== currency) {
+                    const fromRate = rates[assetCurrency] || 1;
+                    const toRate = rates[currency] || 1;
+                    convertedValue = value * (toRate / fromRate);
+                }
+
                 const options = {
                     style,
                     minimumFractionDigits: 2,
@@ -543,7 +558,7 @@
                 if (style === 'currency') {
                     options.currency = currency || 'USD';
                 }
-                return new Intl.NumberFormat('en-US', options).format(value);
+                return new Intl.NumberFormat('en-US', options).format(convertedValue);
             } catch (e) {
                 console.error("FormatNumber Error:", e, { value, style, currency });
                 return value;
@@ -626,7 +641,7 @@
                                         <div className="text-small">{item.name}</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }} onClick={() => onSelect(item, 'asset')}>
-                                        <FormatNumber value={item.price} currency={displayCurrency || item.currency} style="currency" />
+                                        <FormatNumber value={item.price} currency={displayCurrency} assetCurrency={item.currency} style="currency" />
                                     </td>
                                     <td style={{ textAlign: 'right' }} onClick={() => onSelect(item, 'asset')}><PercentChange value={item.change24hPct} /></td>
                                     <td style={{ textAlign: 'center', width: '36px' }}>
@@ -668,7 +683,7 @@
                                         <div className="text-small">{item.name}</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }} onClick={() => onSelect(item, 'asset')}>
-                                        <FormatNumber value={item.price} currency={displayCurrency || item.currency || 'EUR'} style="currency" />
+                                        <FormatNumber value={item.price} currency={displayCurrency} assetCurrency={item.currency || 'EUR'} style="currency" />
                                     </td>
                                     <td style={{ textAlign: 'right' }} onClick={() => onSelect(item, 'asset')}><PercentChange value={item.change24hPct} /></td>
                                     <td style={{ textAlign: 'center', width: '36px' }}>
@@ -710,7 +725,7 @@
                                         <div className="text-small">{item.name}</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <FormatNumber value={item.price} currency={displayCurrency || item.currency || 'EUR'} style="currency" />
+                                        <FormatNumber value={item.price} currency={displayCurrency} assetCurrency={item.currency || 'EUR'} style="currency" />
                                     </td>
                                     <td style={{ textAlign: 'right' }}><PercentChange value={item.change24hPct} /></td>
                                 </tr>

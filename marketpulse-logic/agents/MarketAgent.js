@@ -1,6 +1,9 @@
 /**
  * Agent responsible for fetching and caching market data
  */
+const fs = require('fs');
+const path = require('path');
+
 class MarketAgent {
     /**
       * @param {Object} providers { crypto, stocks }
@@ -8,12 +11,79 @@ class MarketAgent {
       */
     constructor(providers = {}, config = {}) {
         this.providers = providers;
+        this.initialConfig = config;
         this.cache = new Map();
         this.cacheTTL = config.cacheTTL || 5 * 60 * 1000;
+        this.persistencePath = path.join(__dirname, '../data/assets.json');
 
-        // Ensure stockSymbols exists
-        if (!this.providers.stockSymbols) {
-            this.providers.stockSymbols = [];
+        // Initialize stockSymbols
+        this.loadAssets();
+        this.syncWithConfig();
+    }
+
+    syncWithConfig() {
+        if (!this.initialConfig.stockSymbols) return;
+
+        // Ensure every asset in initialConfig exists in providers.stockSymbols
+        // or update them if key metadata changed (like the name or fallback price)
+        let changed = false;
+
+        this.initialConfig.stockSymbols.forEach(initialAsset => {
+            const existing = this.providers.stockSymbols.find(s => s.symbol === initialAsset.symbol);
+            if (!existing) {
+                console.log(`MarketAgent: Adding missing asset from config: ${initialAsset.symbol}`);
+                this.providers.stockSymbols.push({ ...initialAsset });
+                changed = true;
+            } else {
+                // Update name or price if they exist in config but are missing or different in persistence
+                if (initialAsset.name && existing.name !== initialAsset.name) {
+                    existing.name = initialAsset.name;
+                    changed = true;
+                }
+                if (initialAsset.price && !existing.price) {
+                    existing.price = initialAsset.price;
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            this.saveAssets();
+        }
+    }
+
+    loadAssets() {
+        try {
+            if (fs.existsSync(this.persistencePath)) {
+                const data = fs.readFileSync(this.persistencePath, 'utf8');
+                this.providers.stockSymbols = JSON.parse(data);
+                console.log(`MarketAgent: Loaded ${this.providers.stockSymbols.length} assets from persistence.`);
+            } else {
+                // Seed from providers (which should contain initial CONFIG.stockSymbols)
+                if (!this.providers.stockSymbols || this.providers.stockSymbols.length === 0) {
+                    console.log('MarketAgent: No initial assets provided, starting empty.');
+                    this.providers.stockSymbols = [];
+                } else {
+                    console.log(`MarketAgent: Seeding persistence with ${this.providers.stockSymbols.length} initial assets.`);
+                }
+                this.saveAssets(); // Create initial file
+            }
+        } catch (e) {
+            console.error('MarketAgent: Failed to load assets:', e.message);
+            this.providers.stockSymbols = this.providers.stockSymbols || [];
+        }
+    }
+
+    saveAssets() {
+        try {
+            const dir = path.dirname(this.persistencePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(this.persistencePath, JSON.stringify(this.providers.stockSymbols, null, 2));
+            console.log('MarketAgent: Assets saved to persistence.');
+        } catch (e) {
+            console.error('MarketAgent: Failed to save assets:', e.message);
         }
     }
 
@@ -26,6 +96,7 @@ class MarketAgent {
         const exists = this.providers.stockSymbols.some(s => s.symbol === asset.symbol);
         if (!exists) {
             this.providers.stockSymbols.push(asset);
+            this.saveAssets(); // Persist change
             this.cache.clear(); // Invalidate cache to force fetch next time
             console.log(`MarketAgent: Added new asset ${asset.symbol}`);
             return true;
@@ -41,6 +112,7 @@ class MarketAgent {
         const index = this.providers.stockSymbols.findIndex(s => s.symbol === symbol);
         if (index !== -1) {
             this.providers.stockSymbols.splice(index, 1);
+            this.saveAssets(); // Persist change
             this.cache.clear(); // Invalidate cache
             console.log(`MarketAgent: Removed asset ${symbol}`);
             return true;

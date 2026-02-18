@@ -4,9 +4,37 @@
  * European symbols (e.g. GOM.MI, SILV.MI, ^FTSEMIB.MI) return EUR prices natively.
  */
 
-let yahooFinance;
-if (typeof module !== 'undefined' && module.exports) {
-    yahooFinance = require('yahoo-finance2').default;
+let yahooFinance = null;
+
+async function getYahooFinance() {
+    if (yahooFinance) return yahooFinance;
+    try {
+        const yfModule = await import('yahoo-finance2');
+        const YahooFinanceExport = yfModule.default || yfModule;
+
+        // In newer versions, the default export is the class itself.
+        // We'll check if it has the 'quote' method on its prototype if it's a function,
+        // or if the export itself has 'quote'.
+        if (typeof YahooFinanceExport === 'function') {
+            // Check if it's an instance already or needs instantiation
+            if (typeof YahooFinanceExport.quote === 'function') {
+                yahooFinance = YahooFinanceExport;
+            } else {
+                yahooFinance = new YahooFinanceExport();
+            }
+        } else {
+            yahooFinance = YahooFinanceExport;
+        }
+
+        if (typeof yahooFinance.quote !== 'function') {
+            throw new Error('Imported module does not have a quote function');
+        }
+
+        return yahooFinance;
+    } catch (e) {
+        console.error('YahooFinanceProvider: Failed to load/init yahoo-finance2:', e.message);
+        return null;
+    }
 }
 
 class YahooFinanceProvider {
@@ -41,31 +69,16 @@ class YahooFinanceProvider {
     async fetchRealStocks(symbolsRef) {
         const results = [];
 
-        // Process in batches to avoid rate limiting
-        for (let i = 0; i < symbolsRef.length; i += this.batchSize) {
-            const batch = symbolsRef.slice(i, i + this.batchSize);
-
-            const batchResults = await Promise.allSettled(
-                batch.map(s => this.fetchSingleQuote(s))
-            );
-
-            for (let j = 0; j < batchResults.length; j++) {
-                const result = batchResults[j];
-                const symbolRef = batch[j];
-
-                if (result.status === 'fulfilled' && result.value) {
-                    results.push(result.value);
-                } else {
-                    // On error, push with fallback mock data so the asset still appears
-                    console.warn(`YahooFinanceProvider: Failed to fetch ${symbolRef.symbol}:`, result.reason?.message || 'unknown error');
-                    results.push(this.buildMockEntry(symbolRef));
-                }
+        for (const symbolRef of symbolsRef) {
+            try {
+                const result = await this.fetchSingleQuote(symbolRef);
+                results.push(result);
+            } catch (error) {
+                console.warn(`YahooFinanceProvider: Failed to fetch ${symbolRef.symbol}:`, error.message);
+                results.push(this.buildMockEntry(symbolRef));
             }
-
-            // Delay between batches (skip delay after last batch)
-            if (i + this.batchSize < symbolsRef.length) {
-                await new Promise(resolve => setTimeout(resolve, this.batchDelay));
-            }
+            // Small delay between EVERY request to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         return results;
@@ -75,7 +88,12 @@ class YahooFinanceProvider {
      * Fetch a single quote from Yahoo Finance
      */
     async fetchSingleQuote(symbolRef) {
-        const quote = await yahooFinance.quote(symbolRef.symbol, {}, { validateResult: false });
+        const yf = await getYahooFinance();
+        if (!yf) {
+            throw new Error(`Yahoo Finance provider not available`);
+        }
+
+        const quote = await yf.quote(symbolRef.symbol, {}, { validateResult: false });
 
         if (!quote || quote.regularMarketPrice == null) {
             throw new Error(`No price data for ${symbolRef.symbol}`);
@@ -102,9 +120,25 @@ class YahooFinanceProvider {
      * Build a mock entry as fallback when real data fails
      */
     buildMockEntry(symbolRef) {
-        const basePrice = symbolRef.price || (symbolRef.type === 'index' ? 4000 : 100);
-        const randomChange = (Math.random() - 0.5) * 2;
+        // Log the incoming symbolRef to debug why price might be missing
+        // console.log(`YahooFinanceProvider: Building mock for ${symbolRef.symbol}`, Object.keys(symbolRef));
+
+        let basePrice = symbolRef.price;
+
+        // Hardcoded fallbacks for common user requested assets if missing in config/persistence
+        if (!basePrice) {
+            if (symbolRef.symbol === 'IB1T.DE') basePrice = 5.64;
+            else if (symbolRef.symbol === 'GOM.MI') basePrice = 50.67;
+            else if (symbolRef.symbol === 'JEDI.DE') basePrice = 66.26;
+            else if (symbolRef.type === 'index') basePrice = 4000;
+            else basePrice = 100;
+        }
+
+        const randomChange = (Math.random() - 0.5) * 0.5; // Smaller random drift for mock
         const price = basePrice * (1 + randomChange / 100);
+
+        console.log(`YahooFinanceProvider: [FALLBACK] ${symbolRef.symbol} basePrice: ${basePrice} -> mock: ${price.toFixed(4)}`);
+
         return {
             symbol: symbolRef.symbol,
             name: symbolRef.name || symbolRef.symbol,
@@ -116,7 +150,7 @@ class YahooFinanceProvider {
             low24h: price * 0.99,
             volume: null,
             marketCap: null,
-            previousClose: null,
+            previousClose: basePrice,
             isMock: true
         };
     }
