@@ -27,7 +27,7 @@ class MarketPulseOrchestrator {
         // Markets
         const marketProviders = {
             crypto: new CoinGeckoProvider(),
-            stocks: new YahooFinanceProvider(true), // Mock mode
+            stocks: new YahooFinanceProvider(false), // Real mode — fetches live data
             stockSymbols: CONFIG.stockSymbols
         };
         this.marketAgent = new MarketAgent(marketProviders, CONFIG);
